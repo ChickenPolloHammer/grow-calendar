@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useStorage } from './useStorage';
+import { useGrowData } from './useGrowData';
 import MonthCalendar from './components/MonthCalendar';
 import StatsBar from './components/StatsBar';
 import PhaseLegend from './components/PhaseLegend';
@@ -10,16 +10,19 @@ import { DEFAULT_SCHEDULE_BASE, buildScheduleForCycle, buildScaledPhases, BASE_T
 
 export default function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [germDate, setGermDate] = useStorage('grow_germDate', '');
-  const [harvestDate, setHarvestDate] = useStorage('grow_harvestDate', '');
-  const [strainName, setStrainName] = useStorage('grow_strain', '');
-  const [calendarData, setCalendarData] = useStorage('grow_calendarData', {});
-  // scheduleBase: lo que edita el usuario (ratios + productos/dosis)
-  const [scheduleBase, setScheduleBase] = useStorage('grow_scheduleBase', DEFAULT_SCHEDULE_BASE);
   const [showEditor, setShowEditor] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
 
-  // Calcula semanas totales del ciclo real
+  const {
+    germDate, setGermDate,
+    harvestDate, setHarvestDate,
+    strainName, setStrainName,
+    calendarData, setCalendarData,
+    scheduleBase, setScheduleBase,
+    resetAll,
+    syncing, lastSynced, cloudAvailable,
+  } = useGrowData();
+
   const totalCycleWeeks = useMemo(() => {
     if (germDate && harvestDate) {
       const days = Math.round((new Date(harvestDate) - new Date(germDate)) / 86400000);
@@ -28,13 +31,11 @@ export default function App() {
     return BASE_TOTAL_WEEKS;
   }, [germDate, harvestDate]);
 
-  // Programa escalado al ciclo real (semanas absolutas)
   const scaledSchedule = useMemo(
     () => buildScheduleForCycle(totalCycleWeeks, scheduleBase),
     [totalCycleWeeks, scheduleBase]
   );
 
-  // Fases escaladas al ciclo real
   const scaledPhases = useMemo(
     () => buildScaledPhases(totalCycleWeeks),
     [totalCycleWeeks]
@@ -65,20 +66,19 @@ export default function App() {
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Sync indicator */}
+          <div title={cloudAvailable ? (lastSynced ? `Guardado en la nube: ${format(lastSynced, 'HH:mm')}` : 'Conectado a la nube') : 'Guardando solo en este navegador'} style={{ fontSize: 11, color: '#7eb88a', opacity: 0.7, display: 'flex', alignItems: 'center', gap: 4 }}>
+            {syncing ? '↻' : cloudAvailable ? '☁' : '💾'}
+            {syncing ? 'Guardando…' : cloudAvailable ? (lastSynced ? format(lastSynced, 'HH:mm') : 'Nube') : 'Local'}
+          </div>
           <button
             onClick={() => setShowEditor(true)}
-            style={{
-              padding: '7px 14px', borderRadius: 6, border: '1px solid #4a7c59',
-              background: 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer',
-            }}
+            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #4a7c59', background: 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}
           >Programa</button>
           <button
             onClick={() => setShowConfig(v => !v)}
-            style={{
-              padding: '7px 14px', borderRadius: 6, border: '1px solid #4a7c59',
-              background: showConfig ? '#2d4f2d' : 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer',
-            }}
+            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #4a7c59', background: showConfig ? '#2d4f2d' : 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}
           >⚙ Config</button>
         </div>
       </header>
@@ -132,12 +132,8 @@ export default function App() {
           )}
           <button
             onClick={() => {
-              if (window.confirm('¿Resetear todos los datos del calendario?')) {
-                setCalendarData({});
-                setGermDate('');
-                setHarvestDate('');
-                setStrainName('');
-                setScheduleBase(DEFAULT_SCHEDULE_BASE);
+              if (window.confirm('¿Iniciar un nuevo ciclo? Se borrarán los datos de este cultivo.')) {
+                resetAll();
               }
             }}
             style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #c76b2a', background: 'transparent', color: '#c76b2a', fontSize: 12, cursor: 'pointer', marginLeft: 'auto', marginTop: 20 }}
@@ -147,31 +143,24 @@ export default function App() {
 
       {/* Main */}
       <main style={{ padding: '20px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        {/* Month navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <button
             onClick={() => setCurrentDate(d => subMonths(d, 1))}
             style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', color: '#3d2b1a', fontSize: 16 }}
           >←</button>
-
-          <div style={{ textAlign: 'center' }}>
-            <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: '#1a2e1a', textTransform: 'capitalize', margin: 0 }}>
-              {monthLabel}
-            </h1>
-          </div>
-
+          <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: '#1a2e1a', textTransform: 'capitalize', margin: 0 }}>
+            {monthLabel}
+          </h1>
           <button
             onClick={() => setCurrentDate(d => addMonths(d, 1))}
             style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', color: '#3d2b1a', fontSize: 16 }}
           >→</button>
         </div>
 
-        {/* Stats */}
         <div style={{ marginBottom: 16 }}>
           <StatsBar currentDate={currentDate} calendarData={calendarData} />
         </div>
 
-        {/* Calendar */}
         <div style={{ background: '#fff', borderRadius: 10, padding: '16px', border: '0.5px solid #ede9e2', boxShadow: '0 2px 8px rgba(26,46,26,0.06)', marginBottom: 14 }}>
           <MonthCalendar
             currentDate={currentDate}
@@ -183,22 +172,19 @@ export default function App() {
           />
         </div>
 
-        {/* Phase legend */}
         {germDate && (
           <div style={{ padding: '10px 0' }}>
             <PhaseLegend phases={scaledPhases} />
           </div>
         )}
 
-        {/* Harvest countdown banner */}
         {harvestDate && new Date(harvestDate) > new Date() && (
-          <div style={{
-            marginTop: 12, background: '#fef3e2', border: '0.5px solid #d4820a',
-            borderRadius: 8, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10,
-          }}>
+          <div style={{ marginTop: 12, background: '#fef3e2', border: '0.5px solid #d4820a', borderRadius: 8, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 20 }}>🌾</span>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#d4820a' }}>Cosecha estimada: {format(new Date(harvestDate), "d 'de' MMMM yyyy", { locale: es })}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#d4820a' }}>
+                Cosecha estimada: {format(new Date(harvestDate), "d 'de' MMMM yyyy", { locale: es })}
+              </div>
               <div style={{ fontSize: 11, color: '#b06a08' }}>
                 Faltan {Math.round((new Date(harvestDate) - new Date()) / 86400000)} días
               </div>
@@ -207,7 +193,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Schedule editor modal */}
       {showEditor && (
         <ScheduleEditor
           scheduleBase={scheduleBase}
@@ -221,6 +206,3 @@ export default function App() {
     </div>
   );
 }
-
-
-

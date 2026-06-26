@@ -1,60 +1,101 @@
 # 🌱 Grow Calendar
 
-Calendario de cultivo para seguimiento de riegos, lluvia y fertilización semana a semana desde la germinación.
+Calendario de cultivo con sincronización en la nube. Los datos se guardan en Supabase y persisten año tras año, desde cualquier dispositivo.
 
 ## Características
 
-- **Calendario mensual** tipo papel — un recuadro por día con espacio para notas
-- **Registro de riegos**: agua, fertilizante o lluvia, con litros opcionales
-- **Programa de fertilización** personalizable por semana (desde germinación)
-- **Fases de cultivo**: plántula → vegetativo → floración → lavado
-- **Estadísticas mensuales**: cuántas veces y cuántos litros de cada tipo
-- **Countdown a la cosecha**
-- Datos guardados en el navegador (localStorage) — sin cuenta, sin servidor
+- Calendario mensual tipo papel — cuadrículas por día con notas
+- Registro de riegos: agua, fertilizante, lluvia (con litros)
+- Programa de fertilización escalado automáticamente a tu ciclo real
+- Fases de cultivo con franja visual lateral
+- Estadísticas mensuales
+- **Datos sincronizados en la nube con Supabase** — persisten indefinidamente
+- Fallback a localStorage si no hay conexión
 
-## Instalación local
+---
+
+## 1. Crear la base de datos en Supabase
+
+1. Ve a [supabase.com](https://supabase.com) → New project (gratis)
+2. Una vez creado, abre **SQL Editor → New query**
+3. Pega el contenido de `supabase_setup.sql` y ejecuta ▶
+
+---
+
+## 2. Obtener las credenciales
+
+En tu proyecto Supabase: **Settings → API**
+
+Copia:
+- `Project URL` → es tu `SUPABASE_URL`
+- `anon public key` → es tu `SUPABASE_ANON_KEY`
+
+---
+
+## 3. Configurar variables de entorno
+
+```bash
+cp .env.example .env
+# Edita .env con tus credenciales reales
+```
+
+El fichero `.env` ya está en `.gitignore` — nunca se subirá a Git.
+
+---
+
+## 4. Instalar y arrancar
 
 ```bash
 npm install
 npm start
 ```
 
-Abre [http://localhost:3000](http://localhost:3000)
+---
 
-## Deploy en Vercel
+## 5. Deploy en Vercel
 
-1. Sube este proyecto a GitHub:
 ```bash
 git init
 git add .
-git commit -m "first commit"
+git commit -m "init"
 git remote add origin https://github.com/TU_USUARIO/grow-calendar.git
 git push -u origin main
 ```
 
-2. Ve a [vercel.com](https://vercel.com), conecta tu cuenta de GitHub
-3. Importa el repositorio → Vercel lo detecta como Create React App automáticamente
-4. Click en **Deploy** — listo ✅
+En [vercel.com](https://vercel.com) → importa el repo → antes de hacer Deploy:
 
-## Uso
+**Settings → Environment Variables**, añade:
+```
+REACT_APP_SUPABASE_URL        = https://xxxx.supabase.co
+REACT_APP_SUPABASE_ANON_KEY   = eyJ...
+```
 
-1. Abre ⚙ Config → introduce la fecha de germinación y el nombre de la variedad
-2. Navega por meses con las flechas
-3. Click en el `+` de cualquier día para registrar agua, fertilizante o lluvia
-4. Edita el programa de fertilización en **Programa** (puedes poner tus productos reales y dosis)
-5. Los datos se guardan automáticamente en el navegador
+Luego Deploy ✅
+
+---
+
+## Cómo funciona la sincronización
+
+- Cada dispositivo/navegador tiene un ID único (guardado en localStorage)
+- Al arrancar, descarga los datos de Supabase si son más recientes que los locales
+- Cada cambio se guarda en local inmediatamente y se sube a Supabase 1.2 segundos después
+- El indicador ☁ / 💾 en la cabecera muestra el estado de sincronización
+- Si no hay credenciales configuradas, funciona solo con localStorage (como antes)
+
+---
 
 ## Estructura
 
 ```
 src/
-├── App.jsx              # Raíz
-├── fertSchedule.js      # Programa base + fases
-├── useStorage.js        # Hook localStorage
+├── App.jsx
+├── supabase.js          ← cliente Supabase
+├── useGrowData.js       ← hook principal con sync
+├── fertSchedule.js
 └── components/
-    ├── MonthCalendar.jsx  # Grid mensual
-    ├── DayCell.jsx        # Celda de día + modal
-    ├── StatsBar.jsx       # Resumen del mes
-    ├── PhaseLegend.jsx    # Leyenda de fases
-    └── ScheduleEditor.jsx # Editor del programa
+    ├── MonthCalendar.jsx
+    ├── DayCell.jsx
+    ├── StatsBar.jsx
+    ├── PhaseLegend.jsx
+    └── ScheduleEditor.jsx
 ```
