@@ -1,10 +1,11 @@
 import React from 'react';
-import { PHASES } from '../fertSchedule';
+import { buildScaledPhases, BASE_TOTAL_WEEKS } from '../fertSchedule';
 
-export default function PhaseLegend() {
+export default function PhaseLegend({ phases }) {
+  const ph = phases || buildScaledPhases(BASE_TOTAL_WEEKS);
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-      {Object.values(PHASES).map(phase => (
+      {Object.values(ph).map(phase => (
         <div key={phase.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: phase.color }} />
           <span style={{ fontSize: 11, color: '#7a7060' }}>

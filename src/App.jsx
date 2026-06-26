@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { format, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useStorage } from './useStorage';
@@ -6,7 +6,7 @@ import MonthCalendar from './components/MonthCalendar';
 import StatsBar from './components/StatsBar';
 import PhaseLegend from './components/PhaseLegend';
 import ScheduleEditor from './components/ScheduleEditor';
-import { DEFAULT_SCHEDULE } from './fertSchedule';
+import { DEFAULT_SCHEDULE_BASE, buildScheduleForCycle, buildScaledPhases, BASE_TOTAL_WEEKS } from './fertSchedule';
 
 export default function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -14,15 +14,40 @@ export default function App() {
   const [harvestDate, setHarvestDate] = useStorage('grow_harvestDate', '');
   const [strainName, setStrainName] = useStorage('grow_strain', '');
   const [calendarData, setCalendarData] = useStorage('grow_calendarData', {});
-  const [schedule, setSchedule] = useStorage('grow_schedule', DEFAULT_SCHEDULE);
+  // scheduleBase: lo que edita el usuario (ratios + productos/dosis)
+  const [scheduleBase, setScheduleBase] = useStorage('grow_scheduleBase', DEFAULT_SCHEDULE_BASE);
   const [showEditor, setShowEditor] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+
+  // Calcula semanas totales del ciclo real
+  const totalCycleWeeks = useMemo(() => {
+    if (germDate && harvestDate) {
+      const days = Math.round((new Date(harvestDate) - new Date(germDate)) / 86400000);
+      return Math.max(4, Math.round(days / 7));
+    }
+    return BASE_TOTAL_WEEKS;
+  }, [germDate, harvestDate]);
+
+  // Programa escalado al ciclo real (semanas absolutas)
+  const scaledSchedule = useMemo(
+    () => buildScheduleForCycle(totalCycleWeeks, scheduleBase),
+    [totalCycleWeeks, scheduleBase]
+  );
+
+  // Fases escaladas al ciclo real
+  const scaledPhases = useMemo(
+    () => buildScaledPhases(totalCycleWeeks),
+    [totalCycleWeeks]
+  );
 
   function updateDay(key, data) {
     setCalendarData(prev => ({ ...prev, [key]: data }));
   }
 
   const monthLabel = format(currentDate, "MMMM yyyy", { locale: es });
+  const cycleDays = germDate && harvestDate
+    ? Math.round((new Date(harvestDate) - new Date(germDate)) / 86400000)
+    : null;
 
   return (
     <div style={{ minHeight: '100vh', background: '#f7f4ef', fontFamily: "'Inter', sans-serif" }}>
@@ -34,6 +59,11 @@ export default function App() {
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
           <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22 }}>🌱 Grow Calendar</span>
           {strainName && <span style={{ fontSize: 13, opacity: 0.7 }}>{strainName}</span>}
+          {cycleDays && (
+            <span style={{ fontSize: 12, opacity: 0.5 }}>
+              ciclo {cycleDays} días · {totalCycleWeeks} semanas
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
@@ -55,7 +85,7 @@ export default function App() {
 
       {/* Config panel */}
       {showConfig && (
-        <div style={{ background: '#2d4f2d', padding: '16px 24px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ background: '#2d4f2d', padding: '16px 24px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
             <label style={{ display: 'block', fontSize: 11, color: '#7eb88a', marginBottom: 4 }}>Variedad</label>
             <input
@@ -90,11 +120,14 @@ export default function App() {
             </div>
           </div>
           {germDate && harvestDate && (
-            <div style={{ color: '#7eb88a', fontSize: 13 }}>
+            <div style={{ color: '#7eb88a', fontSize: 13, paddingTop: 22 }}>
               🗓 Cosecha en{' '}
               <strong style={{ color: '#e8f4ea' }}>
                 {Math.round((new Date(harvestDate) - new Date()) / 86400000)} días
               </strong>
+              <div style={{ fontSize: 11, opacity: 0.65, marginTop: 4 }}>
+                Programa escalado a {totalCycleWeeks} semanas
+              </div>
             </div>
           )}
           <button
@@ -104,10 +137,10 @@ export default function App() {
                 setGermDate('');
                 setHarvestDate('');
                 setStrainName('');
-                setSchedule(DEFAULT_SCHEDULE);
+                setScheduleBase(DEFAULT_SCHEDULE_BASE);
               }
             }}
-            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #c76b2a', background: 'transparent', color: '#c76b2a', fontSize: 12, cursor: 'pointer', marginLeft: 'auto' }}
+            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #c76b2a', background: 'transparent', color: '#c76b2a', fontSize: 12, cursor: 'pointer', marginLeft: 'auto', marginTop: 20 }}
           >Nuevo ciclo</button>
         </div>
       )}
@@ -145,14 +178,15 @@ export default function App() {
             germDate={germDate}
             calendarData={calendarData}
             onUpdateDay={updateDay}
-            schedule={schedule}
+            schedule={scaledSchedule}
+            phases={scaledPhases}
           />
         </div>
 
         {/* Phase legend */}
         {germDate && (
           <div style={{ padding: '10px 0' }}>
-            <PhaseLegend />
+            <PhaseLegend phases={scaledPhases} />
           </div>
         )}
 
@@ -176,11 +210,17 @@ export default function App() {
       {/* Schedule editor modal */}
       {showEditor && (
         <ScheduleEditor
-          schedule={schedule}
-          onSave={setSchedule}
+          scheduleBase={scheduleBase}
+          scaledSchedule={scaledSchedule}
+          totalCycleWeeks={totalCycleWeeks}
+          phases={scaledPhases}
+          onSave={setScheduleBase}
           onClose={() => setShowEditor(false)}
         />
       )}
     </div>
   );
 }
+
+
+

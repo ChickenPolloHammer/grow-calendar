@@ -4,20 +4,19 @@ import {
   eachDayOfInterval, isSameMonth, isToday, format,
   differenceInCalendarWeeks
 } from 'date-fns';
-//import { es } from 'date-fns/locale';
 import DayCell from './DayCell';
-import { DEFAULT_SCHEDULE, /*PHASES, */getPhaseForWeek } from '../fertSchedule';
+import { buildScaledPhases, BASE_TOTAL_WEEKS, getPhaseForWeek } from '../fertSchedule';
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-export default function MonthCalendar({ currentDate, germDate, calendarData, onUpdateDay, schedule }) {
+export default function MonthCalendar({ currentDate, germDate, calendarData, onUpdateDay, schedule, phases }) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
   const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: calStart, end: calEnd });
 
-  const fertSchedule = schedule || DEFAULT_SCHEDULE;
+  const activePhasesMap = phases || buildScaledPhases(BASE_TOTAL_WEEKS);
 
   function getWeekNum(date) {
     if (!germDate) return null;
@@ -28,17 +27,12 @@ export default function MonthCalendar({ currentDate, germDate, calendarData, onU
   }
 
   function getFertForWeek(weekNum) {
-    if (!weekNum) return null;
-    const entry = fertSchedule.find(s => s.week === weekNum);
+    if (!weekNum || !schedule) return null;
+    const entry = schedule.find(s => s.week === weekNum);
     return entry?.products?.length ? entry.products : null;
   }
 
-  /*function getPhaseForDate(date) {
-    const w = getWeekNum(date);
-    return w ? getPhaseForWeek(w) : null;
-  }*/
-
-  // Group weeks for the phase bar
+  // Group days into weeks for the vertical phase bar
   const weeks = [];
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7));
@@ -52,11 +46,11 @@ export default function MonthCalendar({ currentDate, germDate, calendarData, onU
           {weeks.map((week, wi) => {
             const repDay = week.find(d => isSameMonth(d, currentDate)) || week[0];
             const w = getWeekNum(repDay);
-            const phase = w ? getPhaseForWeek(w) : null;
+            const phase = w ? getPhaseForWeek(w, activePhasesMap) : null;
             return (
               <div
                 key={wi}
-                title={phase ? phase.label : ''}
+                title={phase ? `${phase.label} (S${w})` : ''}
                 style={{
                   width: 6,
                   flex: 1,
@@ -106,3 +100,4 @@ export default function MonthCalendar({ currentDate, germDate, calendarData, onU
     </div>
   );
 }
+
