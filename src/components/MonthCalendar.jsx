@@ -4,9 +4,9 @@ import {
   eachDayOfInterval, isSameMonth, isToday, format,
   differenceInCalendarWeeks
 } from 'date-fns';
-import { es } from 'date-fns/locale';
+//import { es } from 'date-fns/locale';
 import DayCell from './DayCell';
-import { DEFAULT_SCHEDULE, PHASES, getPhaseForWeek } from '../fertSchedule';
+import { DEFAULT_SCHEDULE, /*PHASES, */getPhaseForWeek } from '../fertSchedule';
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -33,10 +33,10 @@ export default function MonthCalendar({ currentDate, germDate, calendarData, onU
     return entry?.products?.length ? entry.products : null;
   }
 
-  function getPhaseForDate(date) {
+  /*function getPhaseForDate(date) {
     const w = getWeekNum(date);
     return w ? getPhaseForWeek(w) : null;
-  }
+  }*/
 
   // Group weeks for the phase bar
   const weeks = [];
