@@ -6,7 +6,7 @@ import MonthCalendar from './components/MonthCalendar';
 import StatsBar from './components/StatsBar';
 import PhaseLegend from './components/PhaseLegend';
 import ScheduleEditor from './components/ScheduleEditor';
-import { DEFAULT_SCHEDULE_BASE, buildScheduleForCycle, buildScaledPhases, BASE_TOTAL_WEEKS } from './fertSchedule';
+import { /*DEFAULT_SCHEDULE_BASE, */buildScheduleForCycle, buildScaledPhases, BASE_TOTAL_WEEKS } from './fertSchedule';
 
 export default function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
