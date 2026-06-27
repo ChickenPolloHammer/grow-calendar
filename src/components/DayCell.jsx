@@ -7,7 +7,7 @@ const EVENT_TYPES = [
   { id: 'rain', label: 'Lluvia', icon: '🌧', color: '#6b8fa8', bg: '#eaf0f5' },
 ];
 
-export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpdate, weekNum }) {
+export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpdate }) {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ type: 'water', liters: '', note: '' });
 
@@ -62,16 +62,6 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
           }}>
             {isFirstDay ? format(date, 'd MMM') : dayNum}
           </span>
-          {weekNum && (
-            <span style={{
-              fontSize: 10,
-              background: '#e8f4ea',
-              color: '#4a7c59',
-              borderRadius: 4,
-              padding: '1px 5px',
-              fontWeight: 500,
-            }}>S{weekNum}</span>
-          )}
         </div>
 
         {/* Events */}

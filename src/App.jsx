@@ -60,7 +60,7 @@ export default function App() {
   // Not logged in → show auth screen
   if (!user) return <AuthScreen />;
 
-  //const monthLabel = format(currentDate, "MMMM yyyy", { locale: es });
+  const monthLabel = format(currentDate, "MMMM yyyy", { locale: es });
   const cycleDays = germDate && harvestDate
     ? Math.round((new Date(harvestDate) - new Date(germDate)) / 86400000)
     : null;
@@ -69,17 +69,13 @@ export default function App() {
     <div style={{ minHeight: '100vh', background: '#f7f4ef', fontFamily: "'Inter', sans-serif" }}>
       {/* Header */}
       <header style={{ background: '#1a2e1a', color: '#e8f4ea', padding: '10px 16px' }}>
-        {/* Row 1: logo + sync + salir */}
+        {/* Row 1: logo + email + salir */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, overflow: 'hidden' }}>
             <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, whiteSpace: 'nowrap' }}>🌱 Grow Calendar</span>
             {strainName && <span style={{ fontSize: 12, opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strainName}</span>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <div title={lastSynced ? `Guardado: ${format(lastSynced, 'HH:mm')}` : 'Sincronizando…'}
-              style={{ fontSize: 11, color: '#7eb88a', opacity: 0.75 }}>
-              {syncing ? '↻' : '☁'} {syncing ? '' : lastSynced ? format(lastSynced, 'HH:mm') : ''}
-            </div>
             <span style={{ fontSize: 11, color: '#7eb88a', opacity: 0.6, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user.email}
             </span>
@@ -89,7 +85,7 @@ export default function App() {
             </button>
           </div>
         </div>
-        {/* Row 2: actions + cycle info */}
+        {/* Row 2: actions + sync */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={() => setShowEditor(true)}
             style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #4a7c59', background: 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}>
@@ -101,9 +97,14 @@ export default function App() {
           </button>
           {cycleDays && (
             <span style={{ fontSize: 11, opacity: 0.45, marginLeft: 4 }}>
-              {cycleDays} días · {totalCycleWeeks} sem
+              {cycleDays}d · {totalCycleWeeks}sem
             </span>
           )}
+          <div
+            title={lastSynced ? `Guardado: ${format(lastSynced, 'HH:mm')}` : 'Sincronizando…'}
+            style={{ marginLeft: 'auto', fontSize: 11, color: '#7eb88a', opacity: 0.6 }}>
+            {syncing ? '↻' : '☁'}{lastSynced && !syncing ? ` ${format(lastSynced, 'HH:mm')}` : ''}
+          </div>
         </div>
       </header>
       {/* Config panel */}
@@ -143,14 +144,11 @@ export default function App() {
       {/* Main */}
       <main style={{ padding: '12px 10px', maxWidth: 1100, margin: '0 auto' }}>
         {/* Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 8 }}>
-          {/* Prev month */}
-          <button onClick={() => setCurrentDate(d => subMonths(d, 1))}
-            style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', color: '#3d2b1a', fontSize: 16, flexShrink: 0 }}>←</button>
-
-          {/* Month + year selectors */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {/* Month picker */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, gap: 12 }}>
+          {/* Month navigation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <button onClick={() => setCurrentDate(d => subMonths(d, 1))}
+              style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: '#3d2b1a', fontSize: 15 }}>‹</button>
             <select
               value={getMonth(currentDate)}
               onChange={e => setCurrentDate(d => setMonth(d, parseInt(e.target.value)))}
@@ -166,41 +164,39 @@ export default function App() {
                 </option>
               ))}
             </select>
-
-            {/* Year with arrows */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <button onClick={() => setCurrentDate(d => subYears(d, 1))}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7a7060', fontSize: 13, padding: '2px 4px', lineHeight: 1 }}>▲</button>
-              <select
-                value={getYear(currentDate)}
-                onChange={e => setCurrentDate(d => setYear(d, parseInt(e.target.value)))}
-                style={{
-                  fontFamily: "'DM Serif Display', serif", fontSize: 22, color: '#1a2e1a',
-                  border: 'none', background: 'transparent', cursor: 'pointer',
-                  appearance: 'none', textAlign: 'center', padding: '2px 4px', width: 80,
-                }}
-              >
-                {Array.from({ length: 10 }, (_, i) => {
-                  const y = new Date().getFullYear() - 3 + i;
-                  return <option key={y} value={y}>{y}</option>;
-                })}
-              </select>
-              <button onClick={() => setCurrentDate(d => addYears(d, 1))}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7a7060', fontSize: 13, padding: '2px 4px', lineHeight: 1 }}>▼</button>
-            </div>
-
-            {/* Back to today */}
-            {format(currentDate, 'yyyy-MM') !== format(new Date(), 'yyyy-MM') && (
-              <button onClick={() => setCurrentDate(new Date())}
-                style={{ fontSize: 11, color: '#4a7c59', background: '#e8f4ea', border: 'none', borderRadius: 5, padding: '3px 8px', cursor: 'pointer', marginLeft: 4 }}>
-                Hoy
-              </button>
-            )}
+            <button onClick={() => setCurrentDate(d => addMonths(d, 1))}
+              style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: '#3d2b1a', fontSize: 15 }}>›</button>
           </div>
 
-          {/* Next month */}
-          <button onClick={() => setCurrentDate(d => addMonths(d, 1))}
-            style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', color: '#3d2b1a', fontSize: 16, flexShrink: 0 }}>→</button>
+          {/* Year navigation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <button onClick={() => setCurrentDate(d => subYears(d, 1))}
+              style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: '#3d2b1a', fontSize: 15 }}>‹</button>
+            <select
+              value={getYear(currentDate)}
+              onChange={e => setCurrentDate(d => setYear(d, parseInt(e.target.value)))}
+              style={{
+                fontFamily: "'DM Serif Display', serif", fontSize: 22, color: '#1a2e1a',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                appearance: 'none', textAlign: 'center', padding: '2px 4px', width: 80,
+              }}
+            >
+              {Array.from({ length: 10 }, (_, i) => {
+                const y = new Date().getFullYear() - 3 + i;
+                return <option key={y} value={y}>{y}</option>;
+              })}
+            </select>
+            <button onClick={() => setCurrentDate(d => addYears(d, 1))}
+              style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', color: '#3d2b1a', fontSize: 15 }}>›</button>
+          </div>
+
+          {/* Back to today */}
+          {format(currentDate, 'yyyy-MM') !== format(new Date(), 'yyyy-MM') && (
+            <button onClick={() => setCurrentDate(new Date())}
+              style={{ fontSize: 11, color: '#4a7c59', background: '#e8f4ea', border: 'none', borderRadius: 5, padding: '4px 10px', cursor: 'pointer' }}>
+              Hoy
+            </button>
+          )}
         </div>
 
         <div style={{ marginBottom: 16 }}>

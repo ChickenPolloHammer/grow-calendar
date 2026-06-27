@@ -37,17 +37,13 @@ export default function MonthCalendar({ currentDate, germDate, calendarData, onU
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {/* Day headers */}
-      <div style={{ display: 'flex', gap: 0 }}>
-        {/* Spacer for phase bar */}
-        {germDate && <div style={{ width: 10, flexShrink: 0 }} />}
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 3, paddingLeft: 4 }}>
-          {DAYS.map(d => (
-            <div key={d} style={{ textAlign: 'center', fontSize: 11, color: '#7a7060', fontWeight: 500, padding: '4px 0' }}>{d}</div>
-          ))}
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 3 }}>
+        {DAYS.map(d => (
+          <div key={d} style={{ textAlign: 'center', fontSize: 11, color: '#7a7060', fontWeight: 500, padding: '4px 0' }}>{d}</div>
+        ))}
       </div>
 
-      {/* Weeks — each row: phase bar segment + fert row + day cells */}
+      {/* Weeks */}
       {weeks.map((week, wi) => {
         const repDay = week.find(d => isSameMonth(d, currentDate)) || week[0];
         const weekNum = getWeekNum(repDay);
@@ -56,63 +52,43 @@ export default function MonthCalendar({ currentDate, germDate, calendarData, onU
         const hasVisibleFert = fertProducts && week.some(d => isSameMonth(d, currentDate));
 
         return (
-          <div key={wi} style={{ display: 'flex', gap: 0, marginBottom: 3 }}>
-            {/* Vertical phase bar segment */}
-            {germDate && (
-              <div style={{ width: 10, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2, paddingRight: 4 }}>
-                {/* Fert row spacer */}
-                {hasVisibleFert && <div style={{ height: 20 }} />}
-                <div
-                  title={phase ? `${phase.label} (S${weekNum})` : ''}
-                  style={{ flex: 1, minHeight: 90, borderRadius: 3, background: phase ? phase.color : '#ede9e2' }}
-                />
+          <div key={wi} style={{ marginBottom: 3 }}>
+            {/* Fertilizer row — spans full week */}
+            {hasVisibleFert && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: '#f0f7f1', borderRadius: 5, padding: '3px 8px',
+                borderLeft: `3px solid ${phase ? phase.color : '#4a7c59'}`,
+                marginBottom: 2,
+              }}>
+                <span style={{ fontSize: 10, color: '#4a7c59', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  S{weekNum}
+                </span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px' }}>
+                  {fertProducts.map((p, i) => (
+                    <span key={i} style={{ fontSize: 10, color: '#4a7c59', whiteSpace: 'nowrap' }}>
+                      🌿 {p.name} <strong>{p.dose}{p.unit}</strong>
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Fertilizer row — spans the full week */}
-              {hasVisibleFert && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  background: '#f0f7f1', borderRadius: 5, padding: '3px 8px',
-                  borderLeft: `3px solid ${phase ? phase.color : '#4a7c59'}`,
-                  minHeight: 20,
-                }}>
-                  <span style={{ fontSize: 10, color: '#4a7c59', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    S{weekNum}
-                  </span>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px' }}>
-                    {fertProducts.map((p, i) => (
-                      <span key={i} style={{ fontSize: 10, color: '#4a7c59', whiteSpace: 'nowrap' }}>
-                        🌿 {p.name} <strong>{p.dose}{p.unit}</strong>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Day cells row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
-                {week.map(day => {
-                  const key = format(day, 'yyyy-MM-dd');
-                  const dayWeekNum = getWeekNum(day);
-                  const isWeekStart = day.getDay() === 1;
-                  const showWeekNum = dayWeekNum && isSameMonth(day, currentDate) && (isWeekStart || day.getDate() === 1);
-
-                  return (
-                    <DayCell
-                      key={key}
-                      date={day}
-                      isToday={isToday(day)}
-                      isCurrentMonth={isSameMonth(day, currentDate)}
-                      dayData={calendarData[key]}
-                      weekNum={showWeekNum ? dayWeekNum : null}
-                      fertInfo={null}
-                      onUpdate={(data) => onUpdateDay(key, data)}
-                    />
-                  );
-                })}
-              </div>
+            {/* Day cells */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+              {week.map(day => {
+                const key = format(day, 'yyyy-MM-dd');
+                return (
+                  <DayCell
+                    key={key}
+                    date={day}
+                    isToday={isToday(day)}
+                    isCurrentMonth={isSameMonth(day, currentDate)}
+                    dayData={calendarData[key]}
+                    onUpdate={(data) => onUpdateDay(key, data)}
+                  />
+                );
+              })}
             </div>
           </div>
         );
