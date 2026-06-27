@@ -34,9 +34,6 @@ export function getPhaseForWeek(week, phases) {
   return null;
 }
 
-// Alias para compatibilidad
-export const PHASES = buildScaledPhases(BASE_TOTAL_WEEKS);
-
 // -------------------------------------------------------------------
 // Programa base en RATIOS (0.0 – 1.0 dentro del ciclo)
 // El usuario edita nombres y dosis; la posición en el ciclo es automática

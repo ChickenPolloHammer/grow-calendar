@@ -60,7 +60,6 @@ export default function App() {
   // Not logged in → show auth screen
   if (!user) return <AuthScreen />;
 
-  const monthLabel = format(currentDate, "MMMM yyyy", { locale: es });
   const cycleDays = germDate && harvestDate
     ? Math.round((new Date(harvestDate) - new Date(germDate)) / 86400000)
     : null;
