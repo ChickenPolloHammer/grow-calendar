@@ -1,49 +1,31 @@
 # 🌱 Grow Calendar
 
-Calendario de cultivo con sincronización en la nube. Los datos se guardan en Supabase y persisten año tras año, desde cualquier dispositivo.
-
-## Características
-
-- Calendario mensual tipo papel — cuadrículas por día con notas
-- Registro de riegos: agua, fertilizante, lluvia (con litros)
-- Programa de fertilización escalado automáticamente a tu ciclo real
-- Fases de cultivo con franja visual lateral
-- Estadísticas mensuales
-- **Datos sincronizados en la nube con Supabase** — persisten indefinidamente
-- Fallback a localStorage si no hay conexión
+Calendario de cultivo con login y sincronización en la nube. Los datos se guardan vinculados a tu cuenta y están disponibles desde cualquier dispositivo.
 
 ---
 
-## 1. Crear la base de datos en Supabase
+## Configuración inicial
 
-1. Ve a [supabase.com](https://supabase.com) → New project (gratis)
-2. Una vez creado, abre **SQL Editor → New query**
-3. Pega el contenido de `supabase_setup.sql` y ejecuta ▶
+### 1. Crear la tabla en Supabase
 
----
+Ve a tu proyecto en [supabase.com](https://supabase.com) → **SQL Editor → New query**, pega el contenido de `supabase_setup.sql` y ejecuta ▶.
 
-## 2. Obtener las credenciales
+> Si ya tenías la tabla antigua (con `device_id`), sigue las instrucciones del bloque "Migración" al final del SQL.
 
-En tu proyecto Supabase: **Settings → API**
+### 2. Activar Auth por email en Supabase
 
-Copia:
-- `Project URL` → es tu `SUPABASE_URL`
-- `anon public key` → es tu `SUPABASE_ANON_KEY`
+Ve a **Authentication → Providers → Email** y asegúrate de que está activado.
 
----
+Opcional pero recomendado: en **Authentication → Email Templates** puedes personalizar el email de confirmación de cuenta.
 
-## 3. Configurar variables de entorno
+### 3. Variables de entorno
 
 ```bash
 cp .env.example .env
-# Edita .env con tus credenciales reales
+# Edita .env con tus credenciales (Settings → API en Supabase)
 ```
 
-El fichero `.env` ya está en `.gitignore` — nunca se subirá a Git.
-
----
-
-## 4. Instalar y arrancar
+### 4. Instalar y arrancar
 
 ```bash
 npm install
@@ -52,7 +34,7 @@ npm start
 
 ---
 
-## 5. Deploy en Vercel
+## Deploy en Vercel
 
 ```bash
 git init
@@ -62,25 +44,23 @@ git remote add origin https://github.com/TU_USUARIO/grow-calendar.git
 git push -u origin main
 ```
 
-En [vercel.com](https://vercel.com) → importa el repo → antes de hacer Deploy:
-
-**Settings → Environment Variables**, añade:
+En Vercel → importa el repo → **Settings → Environment Variables**:
 ```
-REACT_APP_SUPABASE_URL        = https://xxxx.supabase.co
-REACT_APP_SUPABASE_ANON_KEY   = eyJ...
+REACT_APP_SUPABASE_URL       = https://xxxx.supabase.co
+REACT_APP_SUPABASE_ANON_KEY  = eyJ...
 ```
 
-Luego Deploy ✅
+→ Deploy ✅
 
 ---
 
-## Cómo funciona la sincronización
+## Cómo funciona
 
-- Cada dispositivo/navegador tiene un ID único (guardado en localStorage)
-- Al arrancar, descarga los datos de Supabase si son más recientes que los locales
-- Cada cambio se guarda en local inmediatamente y se sube a Supabase 1.2 segundos después
-- El indicador ☁ / 💾 en la cabecera muestra el estado de sincronización
-- Si no hay credenciales configuradas, funciona solo con localStorage (como antes)
+- Registro/login con email y contraseña (gestionado por Supabase Auth)
+- Los datos están vinculados a tu `user_id` — mismos datos en cualquier dispositivo donde te loguees
+- Cada cambio se guarda en local al instante y sube a Supabase 1.2 s después
+- Row Level Security en Supabase: nadie puede leer tus datos salvo tú
+- El indicador ☁ HH:MM en la cabecera confirma la última sincronización
 
 ---
 
@@ -89,10 +69,12 @@ Luego Deploy ✅
 ```
 src/
 ├── App.jsx
-├── supabase.js          ← cliente Supabase
-├── useGrowData.js       ← hook principal con sync
+├── supabase.js
+├── useAuth.js           ← sesión Supabase Auth
+├── useGrowData.js       ← datos sincronizados por user_id
 ├── fertSchedule.js
 └── components/
+    ├── AuthScreen.jsx   ← login / registro / recuperar contraseña
     ├── MonthCalendar.jsx
     ├── DayCell.jsx
     ├── StatsBar.jsx

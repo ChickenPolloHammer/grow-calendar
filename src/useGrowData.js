@@ -2,17 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from './supabase';
 import { DEFAULT_SCHEDULE_BASE } from './fertSchedule';
 
-const DEVICE_ID_KEY = 'grow_device_id';
 const LOCAL_KEY = 'grow_all_data_v2';
-
-function getDeviceId() {
-  let id = localStorage.getItem(DEVICE_ID_KEY);
-  if (!id) {
-    id = 'device_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-    localStorage.setItem(DEVICE_ID_KEY, id);
-  }
-  return id;
-}
 
 const DEFAULT_STATE = {
   germDate: '',
@@ -22,75 +12,68 @@ const DEFAULT_STATE = {
   scheduleBase: DEFAULT_SCHEDULE_BASE,
 };
 
-function readLocal() {
+function readLocal(userId) {
   try {
-    const raw = localStorage.getItem(LOCAL_KEY);
+    const raw = localStorage.getItem(`${LOCAL_KEY}_${userId}`);
     if (raw) return { ...DEFAULT_STATE, ...JSON.parse(raw) };
-  } catch {}
-  // migrate old keys
-  try {
-    const migrated = {
-      germDate: localStorage.getItem('grow_germDate') ? JSON.parse(localStorage.getItem('grow_germDate')) : '',
-      harvestDate: localStorage.getItem('grow_harvestDate') ? JSON.parse(localStorage.getItem('grow_harvestDate')) : '',
-      strainName: localStorage.getItem('grow_strain') ? JSON.parse(localStorage.getItem('grow_strain')) : '',
-      calendarData: localStorage.getItem('grow_calendarData') ? JSON.parse(localStorage.getItem('grow_calendarData')) : {},
-      scheduleBase: localStorage.getItem('grow_scheduleBase') ? JSON.parse(localStorage.getItem('grow_scheduleBase')) : DEFAULT_SCHEDULE_BASE,
-    };
-    return { ...DEFAULT_STATE, ...migrated };
   } catch {}
   return DEFAULT_STATE;
 }
 
-function writeLocal(data) {
-  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch {}
+function writeLocal(userId, data) {
+  try { localStorage.setItem(`${LOCAL_KEY}_${userId}`, JSON.stringify({ ...data, __savedAt: Date.now() })); } catch {}
 }
 
-export function useGrowData() {
-  const deviceId = getDeviceId();
-  const [data, setData] = useState(() => readLocal());
+export function useGrowData(user) {
+  const userId = user?.id;
+  const [data, setData] = useState(DEFAULT_STATE);
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState(null);
-  const [cloudAvailable, setCloudAvailable] = useState(!!supabase);
   const saveTimer = useRef(null);
 
-  // Load from Supabase on mount
+  // Load from Supabase when user changes
   useEffect(() => {
-    if (!supabase) return;
+    if (!userId || !supabase) {
+      setData(DEFAULT_STATE);
+      return;
+    }
+    // First load local cache instantly (no flash)
+    setData(readLocal(userId));
+
+    // Then fetch from Supabase and use if newer
     (async () => {
       setSyncing(true);
       try {
         const { data: rows, error } = await supabase
           .from('grow_data')
           .select('payload, updated_at')
-          .eq('device_id', deviceId)
-          .order('updated_at', { ascending: false })
+          .eq('user_id', userId)
           .limit(1);
+
         if (!error && rows && rows.length > 0) {
           const remote = rows[0].payload;
           const remoteTime = new Date(rows[0].updated_at).getTime();
-          const localRaw = localStorage.getItem(LOCAL_KEY);
+          const localRaw = localStorage.getItem(`${LOCAL_KEY}_${userId}`);
           const localTime = localRaw ? (JSON.parse(localRaw).__savedAt || 0) : 0;
-          // Use whichever is newer
           if (remoteTime > localTime) {
-            setData(prev => ({ ...DEFAULT_STATE, ...remote }));
-            writeLocal({ ...remote, __savedAt: remoteTime });
+            setData({ ...DEFAULT_STATE, ...remote });
+            writeLocal(userId, remote);
           }
           setLastSynced(new Date(rows[0].updated_at));
         }
-        setCloudAvailable(true);
-      } catch {
-        setCloudAvailable(false);
+      } catch (e) {
+        console.warn('Supabase fetch error:', e);
       } finally {
         setSyncing(false);
       }
     })();
-  }, [deviceId]);
+  }, [userId]);
 
-  // Debounced save to Supabase + localStorage
   const update = useCallback((updater) => {
+    if (!userId) return;
     setData(prev => {
       const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
-      writeLocal({ ...next, __savedAt: Date.now() });
+      writeLocal(userId, next);
 
       if (supabase) {
         clearTimeout(saveTimer.current);
@@ -98,20 +81,21 @@ export function useGrowData() {
           setSyncing(true);
           try {
             await supabase.from('grow_data').upsert({
-              device_id: deviceId,
+              user_id: userId,
               payload: next,
               updated_at: new Date().toISOString(),
-            }, { onConflict: 'device_id' });
+            }, { onConflict: 'user_id' });
             setLastSynced(new Date());
-          } catch {}
+          } catch (e) {
+            console.warn('Supabase save error:', e);
+          }
           setSyncing(false);
         }, 1200);
       }
       return next;
     });
-  }, [deviceId]);
+  }, [userId]);
 
-  // Helpers matching the old useStorage API shape
   const setGermDate     = useCallback(v => update(p => ({ ...p, germDate: v })), [update]);
   const setHarvestDate  = useCallback(v => update(p => ({ ...p, harvestDate: v })), [update]);
   const setStrainName   = useCallback(v => update(p => ({ ...p, strainName: v })), [update]);
@@ -119,23 +103,12 @@ export function useGrowData() {
   const setScheduleBase = useCallback(v => update(p => ({ ...p, scheduleBase: v })), [update]);
 
   function resetAll() {
-    const fresh = DEFAULT_STATE;
-    update(() => fresh);
-    if (supabase) {
-      supabase.from('grow_data').upsert({
-        device_id: deviceId,
-        payload: fresh,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'device_id' }).catch(() => {});
-    }
+    update(() => DEFAULT_STATE);
   }
 
   return {
     ...data,
     setGermDate, setHarvestDate, setStrainName, setCalendarData, setScheduleBase,
-    resetAll,
-    syncing,
-    lastSynced,
-    cloudAvailable,
+    resetAll, syncing, lastSynced,
   };
 }
