@@ -206,6 +206,7 @@ export default function App() {
           <MonthCalendar
             currentDate={currentDate}
             germDate={germDate}
+            harvestDate={harvestDate}
             calendarData={calendarData}
             onUpdateDay={updateDay}
             schedule={scaledSchedule}

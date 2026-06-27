@@ -9,7 +9,7 @@ import { buildScaledPhases, BASE_TOTAL_WEEKS, getPhaseForWeek } from '../fertSch
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-export default function MonthCalendar({ currentDate, germDate, calendarData, onUpdateDay, schedule, phases }) {
+export default function MonthCalendar({ currentDate, germDate, harvestDate, calendarData, onUpdateDay, schedule, phases }) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -17,12 +17,17 @@ export default function MonthCalendar({ currentDate, germDate, calendarData, onU
   const days = eachDayOfInterval({ start: calStart, end: calEnd });
   const activePhasesMap = phases || buildScaledPhases(BASE_TOTAL_WEEKS);
 
+  const germDay = germDate ? new Date(germDate) : null;
+  const harvestDay = harvestDate ? new Date(harvestDate) : null;
+
   function getWeekNum(date) {
-    if (!germDate) return null;
-    const germ = new Date(germDate);
-    if (date < germ) return null;
-    const week = differenceInCalendarWeeks(date, germ, { weekStartsOn: 1 }) + 1;
-    return week > 0 ? week : null;
+    if (!germDay) return null;
+    if (date < germDay) return null;
+    if (harvestDay && date > harvestDay) return null;
+    // Use Monday of germination week as anchor so week 1 starts correctly
+    const germMonday = startOfWeek(germDay, { weekStartsOn: 1 });
+    const week = differenceInCalendarWeeks(date, germMonday, { weekStartsOn: 1 }) + 1;
+    return week >= 1 ? week : null;
   }
 
   function getFertForWeek(weekNum) {
