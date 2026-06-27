@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { format, addMonths, subMonths } from 'date-fns';
+import { format, addMonths, subMonths, addYears, subYears, setMonth, setYear, getYear, getMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from './useAuth';
 import { useGrowData } from './useGrowData';
@@ -142,14 +142,65 @@ export default function App() {
 
       {/* Main */}
       <main style={{ padding: '12px 10px', maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        {/* Navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 8 }}>
+          {/* Prev month */}
           <button onClick={() => setCurrentDate(d => subMonths(d, 1))}
-            style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', color: '#3d2b1a', fontSize: 16 }}>←</button>
-          <h1 style={{ fontFamily: "'DM Serif Display', serif", fontSize: 28, color: '#1a2e1a', textTransform: 'capitalize', margin: 0 }}>
-            {monthLabel}
-          </h1>
+            style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', color: '#3d2b1a', fontSize: 16, flexShrink: 0 }}>←</button>
+
+          {/* Month + year selectors */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Month picker */}
+            <select
+              value={getMonth(currentDate)}
+              onChange={e => setCurrentDate(d => setMonth(d, parseInt(e.target.value)))}
+              style={{
+                fontFamily: "'DM Serif Display', serif", fontSize: 22, color: '#1a2e1a',
+                border: 'none', background: 'transparent', cursor: 'pointer',
+                appearance: 'none', textAlign: 'center', padding: '2px 4px',
+              }}
+            >
+              {Array.from({ length: 12 }, (_, i) => (
+                <option key={i} value={i}>
+                  {format(new Date(2000, i, 1), 'MMMM', { locale: es })}
+                </option>
+              ))}
+            </select>
+
+            {/* Year with arrows */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <button onClick={() => setCurrentDate(d => subYears(d, 1))}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7a7060', fontSize: 13, padding: '2px 4px', lineHeight: 1 }}>▲</button>
+              <select
+                value={getYear(currentDate)}
+                onChange={e => setCurrentDate(d => setYear(d, parseInt(e.target.value)))}
+                style={{
+                  fontFamily: "'DM Serif Display', serif", fontSize: 22, color: '#1a2e1a',
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  appearance: 'none', textAlign: 'center', padding: '2px 4px', width: 80,
+                }}
+              >
+                {Array.from({ length: 10 }, (_, i) => {
+                  const y = new Date().getFullYear() - 3 + i;
+                  return <option key={y} value={y}>{y}</option>;
+                })}
+              </select>
+              <button onClick={() => setCurrentDate(d => addYears(d, 1))}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7a7060', fontSize: 13, padding: '2px 4px', lineHeight: 1 }}>▼</button>
+            </div>
+
+            {/* Back to today */}
+            {format(currentDate, 'yyyy-MM') !== format(new Date(), 'yyyy-MM') && (
+              <button onClick={() => setCurrentDate(new Date())}
+                style={{ fontSize: 11, color: '#4a7c59', background: '#e8f4ea', border: 'none', borderRadius: 5, padding: '3px 8px', cursor: 'pointer', marginLeft: 4 }}>
+                Hoy
+              </button>
+            )}
+          </div>
+
+          {/* Next month */}
           <button onClick={() => setCurrentDate(d => addMonths(d, 1))}
-            style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', color: '#3d2b1a', fontSize: 16 }}>→</button>
+            style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', color: '#3d2b1a', fontSize: 16, flexShrink: 0 }}>→</button>
         </div>
 
         <div style={{ marginBottom: 16 }}>
