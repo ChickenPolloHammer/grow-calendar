@@ -27,6 +27,7 @@ export default function App() {
     setName,
     setGermDate,
     setHarvestDate,
+    setRealHarvestDate,
     setCalendarData,
     setScheduleBase,
     syncing,
@@ -34,7 +35,8 @@ export default function App() {
   } = useGrows(user);
 
   const germDate     = activeGrow?.germ_date ?? '';
-  const harvestDate  = activeGrow?.harvest_date ?? '';
+  const harvestDate      = activeGrow?.harvest_date ?? '';
+  const realHarvestDate  = activeGrow?.real_harvest_date ?? '';
   const strainName   = activeGrow?.name ?? '';
   const calendarData = activeGrow?.calendar_data ?? {};
   const scheduleBase = activeGrow?.schedule_base ?? null;
@@ -214,8 +216,10 @@ export default function App() {
                 currentDate={currentDate}
                 germDate={germDate}
                 harvestDate={harvestDate}
+                realHarvestDate={realHarvestDate}
                 calendarData={calendarData}
                 onUpdateDay={updateDay}
+                onSetRealHarvest={setRealHarvestDate}
                 schedule={scaledSchedule}
                 phases={scaledPhases}
               />
@@ -223,7 +227,20 @@ export default function App() {
 
             {germDate && <div style={{ padding: '10px 0' }}><PhaseLegend phases={scaledPhases} /></div>}
 
-            {harvestDate && new Date(harvestDate) > new Date() && (
+            {realHarvestDate && (
+              <div style={{ marginTop: 12, background: '#fef3e2', border: '2px solid #d4820a', borderRadius: 8, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 20 }}>🌾</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#d4820a' }}>
+                    Cosecha real: {format(new Date(realHarvestDate), "d 'de' MMMM yyyy", { locale: es })}
+                  </div>
+                  {germDate && <div style={{ fontSize: 11, color: '#b06a08' }}>
+                    Ciclo de {Math.round((new Date(realHarvestDate) - new Date(germDate)) / 86400000)} días
+                  </div>}
+                </div>
+              </div>
+            )}
+            {!realHarvestDate && harvestDate && new Date(harvestDate) > new Date() && (
               <div style={{ marginTop: 12, background: '#fef3e2', border: '0.5px solid #d4820a', borderRadius: 8, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20 }}>🌾</span>
                 <div>

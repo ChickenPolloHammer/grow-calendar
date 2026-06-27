@@ -9,7 +9,7 @@ import { buildScaledPhases, BASE_TOTAL_WEEKS, getPhaseForWeek } from '../fertSch
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-export default function MonthCalendar({ currentDate, germDate, harvestDate, calendarData, onUpdateDay, schedule, phases }) {
+export default function MonthCalendar({ currentDate, germDate, harvestDate, realHarvestDate, calendarData, onUpdateDay, onSetRealHarvest, schedule, phases }) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -86,6 +86,7 @@ export default function MonthCalendar({ currentDate, germDate, harvestDate, cale
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
               {week.map(day => {
                 const key = format(day, 'yyyy-MM-dd');
+                const dayStr = format(day, 'yyyy-MM-dd');
                 return (
                   <DayCell
                     key={key}
@@ -94,6 +95,10 @@ export default function MonthCalendar({ currentDate, germDate, harvestDate, cale
                     isCurrentMonth={isSameMonth(day, currentDate)}
                     dayData={calendarData[key]}
                     onUpdate={(data) => onUpdateDay(key, data)}
+                    isGermDay={germDate === dayStr}
+                    isEstHarvestDay={harvestDate === dayStr}
+                    isRealHarvestDay={realHarvestDate === dayStr}
+                    onSetRealHarvest={onSetRealHarvest ? () => onSetRealHarvest(realHarvestDate === dayStr ? null : dayStr) : null}
                   />
                 );
               })}

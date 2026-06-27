@@ -7,9 +7,13 @@ const EVENT_TYPES = [
   { id: 'rain', label: 'Lluvia', icon: '🌧', color: '#6b8fa8', bg: '#eaf0f5' },
 ];
 
-export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpdate }) {
+export default function DayCell({
+  date, isToday, isCurrentMonth, dayData, onUpdate,
+  isGermDay, isEstHarvestDay, isRealHarvestDay,
+  onSetRealHarvest,
+}) {
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ type: 'water', liters: '', note: '' });
+  const [form, setForm] = useState({ type: 'water', liters: '' });
 
   const events = dayData?.events || [];
   const note = dayData?.note || '';
@@ -18,7 +22,7 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
     if (!form.type) return;
     const newEvent = { type: form.type, liters: form.liters ? parseFloat(form.liters) : null, id: Date.now() };
     onUpdate({ events: [...events, newEvent], note: dayData?.note || '' });
-    setForm({ type: 'water', liters: '', note: '' });
+    setForm({ type: 'water', liters: '' });
     setShowModal(false);
   }
 
@@ -32,14 +36,23 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
 
   const dayNum = date.getDate();
   const isFirstDay = dayNum === 1;
+  const isSpecial = isGermDay || isEstHarvestDay || isRealHarvestDay;
+
+  // Border and background for special days
+  let borderStyle = isToday ? '2px solid #4a7c59' : '0.5px solid #d8d2c8';
+  let bgColor = isCurrentMonth ? '#fff' : '#f7f4ef';
+
+  if (isRealHarvestDay) { borderStyle = '2px solid #d4820a'; bgColor = '#fffbf0'; }
+  else if (isEstHarvestDay) { borderStyle = '2px dashed #d4820a'; bgColor = '#fffef8'; }
+  else if (isGermDay) { borderStyle = '2px solid #4a7c59'; bgColor = '#f0faf2'; }
 
   return (
     <>
       <div
         style={{
           minHeight: 110,
-          background: isCurrentMonth ? '#fff' : '#f7f4ef',
-          border: isToday ? '2px solid #4a7c59' : '0.5px solid #d8d2c8',
+          background: bgColor,
+          border: borderStyle,
           borderRadius: 6,
           padding: '6px 7px',
           position: 'relative',
@@ -49,20 +62,37 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
           gap: 3,
         }}
       >
-        {/* Day number + week badge */}
+        {/* Day number */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <span style={{
-            fontWeight: isToday ? 600 : 400,
+            fontWeight: (isToday || isSpecial) ? 600 : 400,
             fontSize: 13,
-            color: isToday ? '#4a7c59' : '#3d2b1a',
-            background: isToday ? '#e8f4ea' : 'transparent',
+            color: isGermDay ? '#4a7c59' : (isRealHarvestDay || isEstHarvestDay) ? '#d4820a' : isToday ? '#4a7c59' : '#3d2b1a',
+            background: isToday && !isSpecial ? '#e8f4ea' : 'transparent',
             borderRadius: 10,
-            padding: isToday ? '0 5px' : 0,
+            padding: isToday && !isSpecial ? '0 5px' : 0,
             lineHeight: '18px',
           }}>
             {isFirstDay ? format(date, 'd MMM') : dayNum}
           </span>
         </div>
+
+        {/* Special day badges */}
+        {isGermDay && (
+          <div style={{ fontSize: 10, color: '#4a7c59', fontWeight: 600, lineHeight: 1.2 }}>
+            🌱 Germinación
+          </div>
+        )}
+        {isEstHarvestDay && !isRealHarvestDay && (
+          <div style={{ fontSize: 10, color: '#d4820a', fontWeight: 600, lineHeight: 1.2 }}>
+            🌾 Cosecha est.
+          </div>
+        )}
+        {isRealHarvestDay && (
+          <div style={{ fontSize: 10, color: '#d4820a', fontWeight: 600, lineHeight: 1.2 }}>
+            🌾 Cosecha ✓
+          </div>
+        )}
 
         {/* Events */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
@@ -104,21 +134,12 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
           <button
             onClick={() => setShowModal(true)}
             style={{
-              position: 'absolute',
-              bottom: 4,
-              right: 4,
-              width: 20,
-              height: 20,
-              borderRadius: '50%',
-              border: '0.5px solid #d8d2c8',
-              background: '#fff',
-              color: '#7a7060',
-              fontSize: 14,
-              lineHeight: '18px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
+              position: 'absolute', bottom: 4, right: 4,
+              width: 20, height: 20, borderRadius: '50%',
+              border: '0.5px solid #d8d2c8', background: '#fff',
+              color: '#7a7060', fontSize: 14, lineHeight: '18px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+              cursor: 'pointer',
             }}
           >+</button>
         )}
@@ -147,6 +168,7 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Watering type */}
               <div>
                 <label style={{ fontSize: 12, color: '#7a7060', display: 'block', marginBottom: 4 }}>Tipo de riego</label>
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -159,7 +181,7 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
                         border: `2px solid ${form.type === et.id ? et.color : '#d8d2c8'}`,
                         background: form.type === et.id ? et.bg : '#fff',
                         color: form.type === et.id ? et.color : '#7a7060',
-                        fontSize: 12, fontWeight: 500,
+                        fontSize: 12, fontWeight: 500, cursor: 'pointer',
                       }}
                     >
                       {et.icon}<br />{et.label}
@@ -168,21 +190,19 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
                 </div>
               </div>
 
+              {/* Liters */}
               <div>
                 <label style={{ fontSize: 12, color: '#7a7060', display: 'block', marginBottom: 4 }}>Litros (opcional)</label>
                 <input
-                  type="number"
-                  min="0" step="0.1"
+                  type="number" min="0" step="0.1"
                   value={form.liters}
                   onChange={e => setForm(f => ({ ...f, liters: e.target.value }))}
                   placeholder="ej. 2.5"
-                  style={{
-                    width: '100%', padding: '8px 10px', borderRadius: 6,
-                    border: '0.5px solid #d8d2c8', fontSize: 14,
-                  }}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '0.5px solid #d8d2c8', fontSize: 14, boxSizing: 'border-box' }}
                 />
               </div>
 
+              {/* Note */}
               <div>
                 <label style={{ fontSize: 12, color: '#7a7060', display: 'block', marginBottom: 4 }}>Nota del día</label>
                 <textarea
@@ -190,27 +210,35 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
                   onChange={e => updateNote(e.target.value)}
                   placeholder="Observaciones, pH, EC..."
                   rows={2}
-                  style={{
-                    width: '100%', padding: '8px 10px', borderRadius: 6,
-                    border: '0.5px solid #d8d2c8', fontSize: 13, resize: 'vertical',
-                  }}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '0.5px solid #d8d2c8', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }}
                 />
               </div>
 
+              {/* Mark real harvest */}
+              {onSetRealHarvest && (
+                <button
+                  onClick={() => { onSetRealHarvest(); setShowModal(false); }}
+                  style={{
+                    padding: '9px', borderRadius: 6,
+                    border: `2px solid ${isRealHarvestDay ? '#d4820a' : '#d8d2c8'}`,
+                    background: isRealHarvestDay ? '#fef3e2' : '#fff',
+                    color: isRealHarvestDay ? '#d4820a' : '#7a7060',
+                    fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                  }}
+                >
+                  {isRealHarvestDay ? '🌾 Cosecha real marcada — quitar' : '🌾 Marcar como día de cosecha real'}
+                </button>
+              )}
+
+              {/* Actions */}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   onClick={() => setShowModal(false)}
-                  style={{
-                    flex: 1, padding: '10px', borderRadius: 6,
-                    border: '0.5px solid #d8d2c8', background: '#fff', color: '#7a7060', fontSize: 14,
-                  }}
+                  style={{ flex: 1, padding: '10px', borderRadius: 6, border: '0.5px solid #d8d2c8', background: '#fff', color: '#7a7060', fontSize: 14, cursor: 'pointer' }}
                 >Cancelar</button>
                 <button
                   onClick={addEvent}
-                  style={{
-                    flex: 2, padding: '10px', borderRadius: 6,
-                    border: 'none', background: '#4a7c59', color: '#fff', fontSize: 14, fontWeight: 500,
-                  }}
+                  style={{ flex: 2, padding: '10px', borderRadius: 6, border: 'none', background: '#4a7c59', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}
                 >Registrar</button>
               </div>
             </div>

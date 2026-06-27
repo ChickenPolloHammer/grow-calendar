@@ -9,6 +9,7 @@ export const EMPTY_GROW = {
   name: '',
   germ_date: '',
   harvest_date: '',
+  real_harvest_date: '',
   calendar_data: {},
   schedule_base: DEFAULT_SCHEDULE_BASE,
 };
@@ -122,6 +123,7 @@ export function useGrows(user) {
           name: newGrow.name,
           germ_date: '',
           harvest_date: '',
+  real_harvest_date: '',
           calendar_data: {},
           schedule_base: DEFAULT_SCHEDULE_BASE,
         }).select().single();
@@ -164,7 +166,8 @@ export function useGrows(user) {
   // Convenience setters for active grow fields
   const setName         = useCallback(v => updateActive(g => ({ ...g, name: v })), [updateActive]);
   const setGermDate     = useCallback(v => updateActive(g => ({ ...g, germ_date: v })), [updateActive]);
-  const setHarvestDate  = useCallback(v => updateActive(g => ({ ...g, harvest_date: v })), [updateActive]);
+  const setHarvestDate      = useCallback(v => updateActive(g => ({ ...g, harvest_date: v })), [updateActive]);
+  const setRealHarvestDate  = useCallback(v => updateActive(g => ({ ...g, real_harvest_date: v })), [updateActive]);
   const setCalendarData = useCallback(v => updateActive(g => ({ ...g, calendar_data: typeof v === 'function' ? v(g.calendar_data) : v })), [updateActive]);
   const setScheduleBase = useCallback(v => updateActive(g => ({ ...g, schedule_base: v })), [updateActive]);
 
@@ -178,6 +181,7 @@ export function useGrows(user) {
     setName,
     setGermDate,
     setHarvestDate,
+    setRealHarvestDate,
     setCalendarData,
     setScheduleBase,
     syncing,
