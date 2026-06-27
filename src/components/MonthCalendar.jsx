@@ -53,24 +53,27 @@ export default function MonthCalendar({ currentDate, germDate, calendarData, onU
 
         return (
           <div key={wi} style={{ marginBottom: 3 }}>
-            {/* Fertilizer row — spans full week */}
-            {hasVisibleFert && (
+            {/* Week indicator row — always shown when germDate is set */}
+            {weekNum && week.some(d => isSameMonth(d, currentDate)) && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                background: '#f0f7f1', borderRadius: 5, padding: '3px 8px',
-                borderLeft: `3px solid ${phase ? phase.color : '#4a7c59'}`,
+                background: phase ? `${phase.color}18` : '#f7f4ef',
+                borderRadius: 5, padding: '3px 8px',
+                borderLeft: `3px solid ${phase ? phase.color : '#d8d2c8'}`,
                 marginBottom: 2,
               }}>
-                <span style={{ fontSize: 10, color: '#4a7c59', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                  S{weekNum}
+                <span style={{ fontSize: 10, color: phase ? phase.color : '#7a7060', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  S{weekNum} {phase ? `· ${phase.label}` : ''}
                 </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px' }}>
-                  {fertProducts.map((p, i) => (
-                    <span key={i} style={{ fontSize: 10, color: '#4a7c59', whiteSpace: 'nowrap' }}>
-                      🌿 {p.name} <strong>{p.dose}{p.unit}</strong>
-                    </span>
-                  ))}
-                </div>
+                {hasVisibleFert && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px' }}>
+                    {fertProducts.map((p, i) => (
+                      <span key={i} style={{ fontSize: 10, color: '#4a7c59', whiteSpace: 'nowrap' }}>
+                        🌿 {p.name} <strong>{p.dose}{p.unit}</strong>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
