@@ -7,7 +7,7 @@ const EVENT_TYPES = [
   { id: 'rain', label: 'Lluvia', icon: '🌧', color: '#6b8fa8', bg: '#eaf0f5' },
 ];
 
-export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpdate, fertInfo, weekNum }) {
+export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpdate, weekNum }) {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ type: 'water', liters: '', note: '' });
 
@@ -101,15 +101,6 @@ export default function DayCell({ date, isToday, isCurrentMonth, dayData, onUpda
             );
           })}
         </div>
-
-        {/* Fert info */}
-        {fertInfo && isCurrentMonth && (
-          <div style={{ fontSize: 10, color: '#7a7060', lineHeight: 1.3 }}>
-            {fertInfo.map((p, i) => (
-              <div key={i}>{p.name}: <strong>{p.dose}{p.unit}</strong></div>
-            ))}
-          </div>
-        )}
 
         {/* Note */}
         {note && (

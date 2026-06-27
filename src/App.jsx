@@ -68,44 +68,44 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#f7f4ef', fontFamily: "'Inter', sans-serif" }}>
       {/* Header */}
-      <header style={{
-        background: '#1a2e1a', color: '#e8f4ea', padding: '14px 24px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-          <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 22 }}>🌱 Grow Calendar</span>
-          {strainName && <span style={{ fontSize: 13, opacity: 0.7 }}>{strainName}</span>}
-          {cycleDays && (
-            <span style={{ fontSize: 12, opacity: 0.5 }}>ciclo {cycleDays} días · {totalCycleWeeks} semanas</span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {/* Sync indicator */}
-          <div title={lastSynced ? `Guardado: ${format(lastSynced, 'HH:mm')}` : 'Sincronizando…'}
-            style={{ fontSize: 11, color: '#7eb88a', opacity: 0.75, display: 'flex', alignItems: 'center', gap: 3 }}>
-            {syncing ? '↻' : '☁'} {syncing ? 'Guardando…' : lastSynced ? format(lastSynced, 'HH:mm') : ''}
+      <header style={{ background: '#1a2e1a', color: '#e8f4ea', padding: '10px 16px' }}>
+        {/* Row 1: logo + sync + salir */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0 }}>
+            <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 20, whiteSpace: 'nowrap' }}>🌱 Grow Calendar</span>
+            {strainName && <span style={{ fontSize: 12, opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{strainName}</span>}
           </div>
-          <button onClick={() => setShowEditor(true)}
-            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #4a7c59', background: 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}>
-            Programa
-          </button>
-          <button onClick={() => setShowConfig(v => !v)}
-            style={{ padding: '7px 14px', borderRadius: 6, border: '1px solid #4a7c59', background: showConfig ? '#2d4f2d' : 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}>
-            ⚙ Config
-          </button>
-          {/* User + logout */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8, paddingLeft: 8, borderLeft: '1px solid #2d4f2d' }}>
-            <span style={{ fontSize: 11, color: '#7eb88a', opacity: 0.7, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div title={lastSynced ? `Guardado: ${format(lastSynced, 'HH:mm')}` : 'Sincronizando…'}
+              style={{ fontSize: 11, color: '#7eb88a', opacity: 0.75 }}>
+              {syncing ? '↻' : '☁'} {syncing ? '' : lastSynced ? format(lastSynced, 'HH:mm') : ''}
+            </div>
+            <span style={{ fontSize: 11, color: '#7eb88a', opacity: 0.6, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user.email}
             </span>
             <button onClick={signOut}
-              style={{ padding: '5px 10px', borderRadius: 5, border: '1px solid #4a7c59', background: 'transparent', color: '#7eb88a', fontSize: 12, cursor: 'pointer' }}>
+              style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid #4a7c59', background: 'transparent', color: '#7eb88a', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               Salir
             </button>
           </div>
         </div>
+        {/* Row 2: actions + cycle info */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => setShowEditor(true)}
+            style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #4a7c59', background: 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}>
+            Programa
+          </button>
+          <button onClick={() => setShowConfig(v => !v)}
+            style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #4a7c59', background: showConfig ? '#2d4f2d' : 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}>
+            ⚙ Config
+          </button>
+          {cycleDays && (
+            <span style={{ fontSize: 11, opacity: 0.45, marginLeft: 4 }}>
+              {cycleDays} días · {totalCycleWeeks} sem
+            </span>
+          )}
+        </div>
       </header>
-
       {/* Config panel */}
       {showConfig && (
         <div style={{ background: '#2d4f2d', padding: '16px 24px', display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -141,7 +141,7 @@ export default function App() {
       )}
 
       {/* Main */}
-      <main style={{ padding: '20px 24px', maxWidth: 1100, margin: '0 auto' }}>
+      <main style={{ padding: '12px 10px', maxWidth: 1100, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <button onClick={() => setCurrentDate(d => subMonths(d, 1))}
             style={{ background: 'none', border: '0.5px solid #d8d2c8', borderRadius: 6, padding: '6px 14px', cursor: 'pointer', color: '#3d2b1a', fontSize: 16 }}>←</button>
