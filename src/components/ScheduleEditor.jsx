@@ -1,69 +1,62 @@
 import React, { useState } from 'react';
-import { DEFAULT_SCHEDULE_BASE } from '../fertSchedule';
 
-export default function ScheduleEditor({ scheduleBase, totalCycleWeeks, phases, onSave, onClose }) {
-  const [localBase, setLocalBase] = useState(
-    (scheduleBase || DEFAULT_SCHEDULE_BASE).map(s => ({ ...s, products: s.products.map(p => ({ ...p })) }))
+// The editor works directly with the scaled schedule (week numbers),
+// so what you see is what gets saved — no ratio re-mapping surprises.
+export default function ScheduleEditor({ scaledSchedule, totalCycleWeeks, phases, onSave, onClose }) {
+  const [weeks, setWeeks] = useState(
+    () => (scaledSchedule || []).map(s => ({ ...s, products: (s.products || []).map(p => ({ ...p })) }))
   );
 
-  function updateProduct(baseIdx, prodIdx, field, value) {
-    setLocalBase(prev => prev.map((entry, ei) =>
-      ei === baseIdx
-        ? { ...entry, products: entry.products.map((p, pi) => pi === prodIdx ? { ...p, [field]: value } : p) }
-        : entry
-    ));
+  function updateProduct(weekIdx, prodIdx, field, value) {
+    setWeeks(prev => prev.map((w, wi) => wi !== weekIdx ? w : {
+      ...w,
+      products: w.products.map((p, pi) => pi !== prodIdx ? p : { ...p, [field]: value }),
+    }));
   }
 
-  function addProduct(baseIdx) {
-    setLocalBase(prev => prev.map((entry, ei) =>
-      ei === baseIdx
-        ? { ...entry, products: [...entry.products, { name: '', dose: 1, unit: 'ml/L' }] }
-        : entry
-    ));
+  function addProduct(weekIdx) {
+    setWeeks(prev => prev.map((w, wi) => wi !== weekIdx ? w : {
+      ...w, products: [...w.products, { name: '', dose: 1, unit: 'ml/L' }],
+    }));
   }
 
-  function removeProduct(baseIdx, prodIdx) {
-    setLocalBase(prev => prev.map((entry, ei) =>
-      ei === baseIdx
-        ? { ...entry, products: entry.products.filter((_, pi) => pi !== prodIdx) }
-        : entry
-    ));
+  function removeProduct(weekIdx, prodIdx) {
+    setWeeks(prev => prev.map((w, wi) => wi !== weekIdx ? w : {
+      ...w, products: w.products.filter((_, pi) => pi !== prodIdx),
+    }));
   }
 
-  // Calcular semana real para un ratio dado
-  function getRealWeek(ratio) {
-    return Math.max(1, Math.min(totalCycleWeeks, Math.round(ratio * totalCycleWeeks) || 1));
-  }
-
-  // Obtener fase para un ratio
-  const phasesList = phases ? Object.values(phases) : [];
-  function getPhaseForRatio(ratio) {
-    const realWeek = getRealWeek(ratio);
-    for (const phase of phasesList) {
-      if (phase.weeks.includes(realWeek)) return phase;
+  function getPhaseForWeek(weekNum) {
+    if (!phases) return null;
+    for (const phase of Object.values(phases)) {
+      if (phase.weeks.includes(weekNum)) return phase;
     }
     return null;
   }
 
-  // Agrupar por fase, eliminando duplicados de semana dentro de cada fase
-  // y entradas que no tienen fase asignada (ratio fuera de rango del ciclo corto)
-  const grouped = {};
-  const seenWeeksByPhase = {};
-
-  localBase.forEach((entry, idx) => {
-    const phase = getPhaseForRatio(entry.ratio);
-    if (!phase) return; // omitir entradas sin fase (ratio fuera del ciclo real)
-
-    const key = phase.label;
-    const realWeek = getRealWeek(entry.ratio);
-
-    if (!seenWeeksByPhase[key]) seenWeeksByPhase[key] = new Set();
-    if (seenWeeksByPhase[key].has(realWeek)) return; // omitir duplicado de semana
-    seenWeeksByPhase[key].add(realWeek);
-
-    if (!grouped[key]) grouped[key] = { phase, entries: [] };
-    grouped[key].entries.push({ ...entry, idx, realWeek });
+  // Group weeks by phase
+  const grouped = [];
+  let currentGroup = null;
+  weeks.forEach((entry, idx) => {
+    const phase = getPhaseForWeek(entry.week);
+    const phaseName = phase?.label ?? 'Sin fase';
+    if (!currentGroup || currentGroup.phaseName !== phaseName) {
+      currentGroup = { phaseName, phase, entries: [] };
+      grouped.push(currentGroup);
+    }
+    currentGroup.entries.push({ ...entry, idx });
   });
+
+  // Save: convert back to ratio-based format for storage
+  function handleSave() {
+    const tw = totalCycleWeeks || 20;
+    const asBase = weeks.map(w => ({
+      ratio: parseFloat((w.week / tw).toFixed(4)),
+      products: w.products.filter(p => p.name.trim()),
+    }));
+    onSave(asBase);
+    onClose();
+  }
 
   return (
     <div style={{
@@ -78,7 +71,7 @@ export default function ScheduleEditor({ scheduleBase, totalCycleWeeks, phases, 
             </span>
             <div style={{ fontSize: 12, color: '#7a7060', marginTop: 2 }}>
               {totalCycleWeeks === 20
-                ? 'Sin fechas configuradas — ciclo base de 20 semanas (~140 días)'
+                ? 'Sin fechas configuradas — ciclo base de 20 semanas'
                 : `Ciclo de ${totalCycleWeeks} semanas — ajustado a tu ciclo real`}
             </div>
           </div>
@@ -86,21 +79,21 @@ export default function ScheduleEditor({ scheduleBase, totalCycleWeeks, phases, 
         </div>
 
         <div style={{ padding: '12px 24px', maxHeight: '75vh', overflowY: 'auto' }}>
-          {Object.entries(grouped).map(([phaseName, { phase, entries }]) => (
+          {grouped.filter(g => g.phaseName !== 'Sin fase').map(({ phaseName, phase, entries }) => (
             <div key={phaseName} style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: phase.color }} />
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: phase?.color ?? '#ccc' }} />
                 <span style={{ fontWeight: 600, color: '#1a2e1a', fontSize: 14 }}>{phaseName}</span>
-                <span style={{ fontSize: 12, color: '#7a7060' }}>
-                  S{phase.weeks[0]}–{phase.weeks[phase.weeks.length - 1]}
-                </span>
+                {phase && (
+                  <span style={{ fontSize: 12, color: '#7a7060' }}>
+                    S{phase.weeks[0]}–{phase.weeks[phase.weeks.length - 1]}
+                  </span>
+                )}
               </div>
 
-              {entries.map(({ idx, products, realWeek }) => (
-                <div key={idx} style={{ marginBottom: 8, paddingLeft: 18, borderLeft: `2px solid ${phase.color}40` }}>
-                  <div style={{ fontSize: 12, color: '#7a7060', marginBottom: 4, fontWeight: 500 }}>
-                    Semana {realWeek}
-                  </div>
+              {entries.map(({ week, products, idx }) => (
+                <div key={week} style={{ marginBottom: 8, paddingLeft: 18, borderLeft: `2px solid ${phase?.color ?? '#ccc'}40` }}>
+                  <div style={{ fontSize: 12, color: '#7a7060', marginBottom: 4, fontWeight: 500 }}>Semana {week}</div>
                   {products.map((prod, pi) => (
                     <div key={pi} style={{ display: 'flex', gap: 6, marginBottom: 4, alignItems: 'center' }}>
                       <input
@@ -125,16 +118,14 @@ export default function ScheduleEditor({ scheduleBase, totalCycleWeeks, phases, 
                         <option>ml</option>
                         <option>g</option>
                       </select>
-                      <button
-                        onClick={() => removeProduct(idx, pi)}
-                        style={{ background: 'none', border: 'none', color: '#c76b2a', fontSize: 16, padding: '0 4px', cursor: 'pointer' }}
-                      >×</button>
+                      <button onClick={() => removeProduct(idx, pi)}
+                        style={{ background: 'none', border: 'none', color: '#c76b2a', fontSize: 16, padding: '0 4px', cursor: 'pointer' }}>×</button>
                     </div>
                   ))}
-                  <button
-                    onClick={() => addProduct(idx)}
-                    style={{ fontSize: 12, color: '#4a7c59', background: 'none', border: 'none', marginTop: 2, cursor: 'pointer' }}
-                  >+ Añadir producto</button>
+                  <button onClick={() => addProduct(idx)}
+                    style={{ fontSize: 12, color: '#4a7c59', background: 'none', border: 'none', marginTop: 2, cursor: 'pointer' }}>
+                    + Añadir producto
+                  </button>
                 </div>
               ))}
             </div>
@@ -146,7 +137,7 @@ export default function ScheduleEditor({ scheduleBase, totalCycleWeeks, phases, 
             style={{ flex: 1, padding: '10px', borderRadius: 6, border: '0.5px solid #d8d2c8', background: '#fff', color: '#7a7060', fontSize: 14, cursor: 'pointer' }}>
             Cancelar
           </button>
-          <button onClick={() => { onSave(localBase); onClose(); }}
+          <button onClick={handleSave}
             style={{ flex: 2, padding: '10px', borderRadius: 6, border: 'none', background: '#4a7c59', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer' }}>
             Guardar programa
           </button>
