@@ -9,12 +9,14 @@ import MonthCalendar from './components/MonthCalendar';
 import StatsBar from './components/StatsBar';
 import PhaseLegend from './components/PhaseLegend';
 import ScheduleEditor from './components/ScheduleEditor';
+import PdfExport from './components/PdfExport';
 import { buildScheduleForCycle, buildScaledPhases, BASE_TOTAL_WEEKS } from './fertSchedule';
 
 export default function App() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showEditor, setShowEditor] = useState(false);
+  const [showPdf, setShowPdf] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
 
   const {
@@ -108,6 +110,10 @@ export default function App() {
           <button onClick={() => setShowEditor(true)}
             style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #4a7c59', background: 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}>
             Programa
+          </button>
+          <button onClick={() => setShowPdf(true)}
+            style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #4a7c59', background: 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}>
+            📄 PDF
           </button>
           <button onClick={() => setShowConfig(v => !v)}
             style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #4a7c59', background: showConfig ? '#2d4f2d' : 'transparent', color: '#7eb88a', fontSize: 13, cursor: 'pointer' }}>
@@ -256,6 +262,15 @@ export default function App() {
           </>
         )}
       </main>
+
+      {showPdf && activeGrow && (
+        <PdfExport
+          grow={activeGrow}
+          scaledSchedule={scaledSchedule}
+          scaledPhases={scaledPhases}
+          onClose={() => setShowPdf(false)}
+        />
+      )}
 
       {showEditor && activeGrow && (
         <ScheduleEditor
